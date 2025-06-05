@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { VideoJobService } from '../services/videoJobService'
-import { type VideoJob, type JobStatus } from '../lib/supabase'
+import { type VideoJob, type JobStatus, isSupabaseConfigured } from '../lib/supabase'
 
 // Router setup
 const route = useRoute()
@@ -195,7 +195,7 @@ async function handleGenerateScenario() {
   isLoading.value = true
   
   try {
-    // Create job in database
+    // Try to create job in database (will be null if Supabase not configured)
     const job = await VideoJobService.createJob({
       videoTitle: scenarioData.videoTitle,
       scenarioDetails: scenarioData.scenarioDetails,
@@ -203,6 +203,7 @@ async function handleGenerateScenario() {
     })
     
     if (job) {
+      // Database available - use persistent job workflow
       currentJob.value = job
       currentJobId.value = job.id!
       currentStatus.value = 'PENDING_SCRIPT_REVIEW'
@@ -224,10 +225,26 @@ async function handleGenerateScenario() {
       
       mockOutputs.script = mockScript
       currentStatus.value = 'SCRIPT_READY_FOR_REVIEW'
+    } else {
+      // Database not available - use mock-only workflow
+      console.log('Database not available, using mock workflow')
+      currentStatus.value = 'PENDING_SCRIPT_REVIEW'
+      
+      // Simulate API call delay
+      await simulateDelay(2000)
+      
+      mockOutputs.script = mockScript
+      currentStatus.value = 'SCRIPT_READY_FOR_REVIEW'
     }
   } catch (error) {
     console.error('Error creating job:', error)
-    alert('Failed to create video job. Please try again.')
+    // Fall back to mock workflow
+    console.log('Falling back to mock workflow')
+    currentStatus.value = 'PENDING_SCRIPT_REVIEW'
+    
+    await simulateDelay(2000)
+    mockOutputs.script = mockScript
+    currentStatus.value = 'SCRIPT_READY_FOR_REVIEW'
   } finally {
     isLoading.value = false
   }
@@ -431,6 +448,19 @@ watch(() => route.query.jobId, (newJobId) => {
         </span>
         <span class="text-green-600 text-xs">
           Status synced with Supabase
+        </span>
+      </div>
+    </div>
+    
+    <!-- Mock Mode Indicator -->
+    <div v-else-if="!isSupabaseConfigured && currentStatus !== 'INPUT'" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-center space-x-2">
+        <span class="h-2 w-2 bg-blue-500 rounded-full"></span>
+        <span class="text-blue-700 text-sm font-medium">
+          Demo Mode - No Database Connected
+        </span>
+        <span class="text-blue-600 text-xs">
+          Using mock workflow (progress not saved)
         </span>
       </div>
     </div>

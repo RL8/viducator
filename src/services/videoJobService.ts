@@ -1,13 +1,25 @@
-import { supabase, type VideoJob, type JobStatus } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, type VideoJob, type JobStatus } from '../lib/supabase'
 
 export class VideoJobService {
+  
+  /**
+   * Check if database is available
+   */
+  static isAvailable(): boolean {
+    return isSupabaseConfigured && supabase !== null
+  }
   
   /**
    * Create a new video job in the database
    */
   static async createJob(inputScenario: VideoJob['input_scenario']): Promise<VideoJob | null> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, skipping job creation')
+      return null
+    }
+
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('video_jobs')
         .insert({
           status: 'PENDING_SCRIPT_REVIEW',
@@ -33,8 +45,13 @@ export class VideoJobService {
    * Get a video job by ID
    */
   static async getJob(jobId: string): Promise<VideoJob | null> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot fetch job')
+      return null
+    }
+
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('video_jobs')
         .select('*')
         .eq('id', jobId)
@@ -59,13 +76,18 @@ export class VideoJobService {
     jobId: string, 
     updates: Partial<Pick<VideoJob, 'status' | 'current_outputs' | 'error_message'>>
   ): Promise<VideoJob | null> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot update job')
+      return null
+    }
+
     try {
       const updateData = {
         ...updates,
         updated_at: new Date().toISOString()
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('video_jobs')
         .update(updateData)
         .eq('id', jobId)
@@ -88,8 +110,13 @@ export class VideoJobService {
    * Update job status only
    */
   static async updateStatus(jobId: string, status: JobStatus): Promise<boolean> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot update status')
+      return false
+    }
+
     try {
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('video_jobs')
         .update({ 
           status,
@@ -113,8 +140,13 @@ export class VideoJobService {
    * Update job outputs
    */
   static async updateOutputs(jobId: string, outputs: VideoJob['current_outputs']): Promise<boolean> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot update outputs')
+      return false
+    }
+
     try {
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('video_jobs')
         .update({ 
           current_outputs: outputs,
@@ -138,8 +170,13 @@ export class VideoJobService {
    * Get all jobs for the current user (for job history)
    */
   static async getUserJobs(): Promise<VideoJob[]> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot fetch user jobs')
+      return []
+    }
+
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabase!
         .from('video_jobs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -160,7 +197,12 @@ export class VideoJobService {
    * Subscribe to job status changes for real-time updates
    */
   static subscribeToJob(jobId: string, callback: (job: VideoJob) => void) {
-    return supabase
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot subscribe to job changes')
+      return null
+    }
+
+    return supabase!
       .channel(`job-${jobId}`)
       .on(
         'postgres_changes',
@@ -185,8 +227,13 @@ export class VideoJobService {
     filePath: string,
     file: File
   ): Promise<string | null> {
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot upload file')
+      return null
+    }
+
     try {
-      const { data, error } = await supabase.storage
+      const { data, error } = await supabase!.storage
         .from(bucket)
         .upload(filePath, file)
 
@@ -196,7 +243,7 @@ export class VideoJobService {
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = supabase!.storage
         .from(bucket)
         .getPublicUrl(data.path)
 
@@ -211,7 +258,12 @@ export class VideoJobService {
    * Get public URL for a file in storage
    */
   static getPublicUrl(bucket: 'video-assets' | 'final-videos', filePath: string): string {
-    const { data } = supabase.storage
+    if (!this.isAvailable()) {
+      console.log('Database not configured, cannot get public URL')
+      return ''
+    }
+
+    const { data } = supabase!.storage
       .from(bucket)
       .getPublicUrl(filePath)
     

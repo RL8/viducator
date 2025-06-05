@@ -1,10 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 
-// These will be environment variables in production
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+// Check if Supabase is properly configured
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Check if Supabase configuration is available
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseKey && 
+  supabaseUrl !== 'https://your-project.supabase.co' &&
+  supabaseKey !== 'your-anon-key'
+)
+
+// Create Supabase client only if properly configured
+export const supabase = isSupabaseConfigured 
+  ? createClient(supabaseUrl!, supabaseKey!)
+  : null
 
 // Database types for TypeScript
 export interface VideoJob {
