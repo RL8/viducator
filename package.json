@@ -8,15 +8,24 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/viducator.git"
+    "url": "https://github.com/RL8/viducator.git"
   },
-  "keywords": ["ai", "video", "education", "vue", "supabase", "automation"],
+  "homepage": "https://rl8.github.io/viducator",
+  "keywords": [
+    "ai",
+    "video",
+    "education",
+    "vue",
+    "supabase",
+    "automation"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
+    "deploy": "npm run build && gh-pages -d dist",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",
@@ -41,6 +50,7 @@
     "eslint": "^9.22.0",
     "eslint-plugin-oxlint": "^0.16.0",
     "eslint-plugin-vue": "~10.0.0",
+    "gh-pages": "^6.3.0",
     "jiti": "^2.4.2",
     "npm-run-all2": "^7.0.2",
     "oxlint": "^0.16.0",
